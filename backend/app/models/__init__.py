@@ -1,6 +1,7 @@
 from app.db.session import Base
 from sqlalchemy import Column, String, Integer, Text, Boolean, JSON, DateTime
 from datetime import datetime
+from app.models.user import UserModel
 
 class ProductIdentityModel(Base):
     __tablename__ = "product_identities"

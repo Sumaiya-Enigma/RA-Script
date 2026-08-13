@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import Header from '../components/Header';
 import Sidebar, { TabType } from '../components/Sidebar';
+import AuthModal from '../components/AuthModal';
+import UserProfileModal from '../components/UserProfileModal';
 import { 
   ProductIdentity, 
   CTDSection, 
@@ -352,6 +354,8 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col font-sans text-slate-800 dark:text-slate-100 transition-colors" id="main-app-shell">
       <Header />
+      <AuthModal />
+      <UserProfileModal />
 
       <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col md:flex-row gap-6">
         <Sidebar

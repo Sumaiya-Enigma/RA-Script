@@ -1,11 +1,101 @@
-import { ProductIdentity, IngestedDocument, CTDSection, RegulatoryGap, AuditLog, ConsistencyFinding } from '../types';
+import { ProductIdentity } from '../types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || '/api/v1';
 
-export async function analyzeDocumentApi(docName: string, category?: string, customText?: string) {
-  const res = await fetch(`${API_BASE}/gemini/analyze-document`, {
+export function getAuthHeader(): Record<string, string> {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('rascript_access_token');
+    if (token) {
+      return { Authorization: `Bearer ${token}` };
+    }
+  }
+  return {};
+}
+
+export async function signupApi(data: { username: string; email: string; password: string; full_name?: string }) {
+  const res = await fetch(`${API_BASE}/auth/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  const body = await res.json();
+  if (!res.ok) {
+    throw new Error(body.detail || 'Signup failed');
+  }
+  return body;
+}
+
+export async function loginApi(data: { username_or_email: string; password: string }) {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  const body = await res.json();
+  if (!res.ok) {
+    throw new Error(body.detail || 'Login failed');
+  }
+  return body;
+}
+
+export async function googleAuthApi(data: { token: string; email?: string; name?: string; picture?: string }) {
+  const res = await fetch(`${API_BASE}/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  const body = await res.json();
+  if (!res.ok) {
+    throw new Error(body.detail || 'Google Authentication failed');
+  }
+  return body;
+}
+
+export async function getMeApi() {
+  const headers = getAuthHeader();
+  if (!headers.Authorization) return null;
+
+  const res = await fetch(`${API_BASE}/auth/me`, {
+    headers: { ...headers },
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+export async function updateProfileApi(data: { full_name?: string; username?: string; email?: string; role?: string; avatar_url?: string }) {
+  const headers = getAuthHeader();
+  const res = await fetch(`${API_BASE}/users/profile`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify(data),
+  });
+  const body = await res.json();
+  if (!res.ok) {
+    throw new Error(body.detail || 'Profile update failed');
+  }
+  return body;
+}
+
+export async function changePasswordApi(data: { current_password: string; new_password: string }) {
+  const headers = getAuthHeader();
+  const res = await fetch(`${API_BASE}/users/change-password`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify(data),
+  });
+  const body = await res.json();
+  if (!res.ok) {
+    throw new Error(body.detail || 'Password change failed');
+  }
+  return body;
+}
+
+// ---------------- Existing AI Endpoints ----------------
+export async function analyzeDocumentApi(docName: string, category?: string, customText?: string) {
+  const headers = getAuthHeader();
+  const res = await fetch(`${API_BASE}/gemini/analyze-document`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify({ documentName: docName, category, customText }),
   });
   if (!res.ok) {
@@ -15,9 +105,10 @@ export async function analyzeDocumentApi(docName: string, category?: string, cus
 }
 
 export async function generateDraftApi(sectionId: string, sectionTitle: string, productInfo: ProductIdentity, marketContext: string[]) {
+  const headers = getAuthHeader();
   const res = await fetch(`${API_BASE}/gemini/generate-draft`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify({ sectionId, sectionTitle, productInfo, marketContext }),
   });
   if (!res.ok) {
@@ -26,10 +117,11 @@ export async function generateDraftApi(sectionId: string, sectionTitle: string, 
   return res.json();
 }
 
-export async function assistantChatApi(messages: { role: string; content: string }[], productInfo: ProductIdentity, currentSection?: CTDSection) {
+export async function assistantChatApi(messages: { role: string; content: string }[], productInfo: ProductIdentity, currentSection?: any) {
+  const headers = getAuthHeader();
   const res = await fetch(`${API_BASE}/gemini/assistant-chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...headers },
     body: JSON.stringify({ messages, productInfo, currentSection }),
   });
   if (!res.ok) {
@@ -40,7 +132,8 @@ export async function assistantChatApi(messages: { role: string; content: string
 
 export async function getProductApi(): Promise<ProductIdentity> {
   try {
-    const res = await fetch(`${API_BASE}/product`);
+    const headers = getAuthHeader();
+    const res = await fetch(`${API_BASE}/product`, { headers });
     if (res.ok) return res.json();
   } catch (e) {
     console.warn("Could not fetch product from backend, using fallback state", e);
